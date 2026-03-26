@@ -187,8 +187,9 @@ class PaypalMerchantAccountManager
     end
 
     def notify_bugsnag
-      Bugsnag.notify(request: response.request,
-                     response:)
+      ErrorNotifier.notify("PayPal partner referral error",
+                           request: response.request,
+                           response:)
     end
 
     def handle_merchant_account_updated_event(paypal_event)
