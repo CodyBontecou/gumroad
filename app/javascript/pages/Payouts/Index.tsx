@@ -451,6 +451,7 @@ export default function PayoutsIndex() {
     tax_center_enabled,
     past_payout_period_data,
     pagination,
+    scheduled_payout,
   } = usePage<PayoutsProps>().props;
 
   const loggedInUser = useLoggedInUser();
@@ -533,6 +534,33 @@ export default function PayoutsIndex() {
         ) : null}
       </PageHeader>
       <div className="space-y-8 p-4 md:p-8">
+        {scheduled_payout ? (
+          <Alert variant="info" role="status">
+            <p>
+              {scheduled_payout.action === "payout" ? (
+                <>
+                  Your balance
+                  {scheduled_payout.payout_amount_cents != null
+                    ? ` of ${formatPriceCentsWithCurrencySymbol("usd", scheduled_payout.payout_amount_cents, { symbolFormat: "short", noCentsIfWhole: false })}`
+                    : ""}{" "}
+                  is scheduled for payout on{" "}
+                  <strong>{new Date(scheduled_payout.scheduled_at).toLocaleDateString()}</strong>.
+                  {scheduled_payout.status === "flagged" &&
+                    " Your payout is under review. Please contact support for details."}
+                </>
+              ) : scheduled_payout.action === "refund" ? (
+                <>
+                  Your purchases are scheduled to be refunded on{" "}
+                  <strong>{new Date(scheduled_payout.scheduled_at).toLocaleDateString()}</strong>.
+                </>
+              ) : (
+                <>
+                  Your balance is on hold. Please <a href={Routes.support_index_path()}>contact support</a> for details.
+                </>
+              )}
+            </p>
+          </Alert>
+        ) : null}
         {!instant_payout ? (
           show_instant_payouts_notice ? (
             <Alert variant="info" role="status">
