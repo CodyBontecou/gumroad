@@ -26,6 +26,10 @@ const SCOPES = [
     description: "read access to the user's payouts information.",
   },
   {
+    name: "view_tax_data",
+    description: "read access to the user's tax forms (1099-K, 1099-MISC) and annual earnings summary.",
+  },
+  {
     name: "mark_sales_as_shipped",
     description: "write access to mark the user's products' sales as shipped.",
   },

@@ -88,6 +88,10 @@ Rails.application.routes.draw do
       put "/resource_subscriptions", to: "resource_subscriptions#create"
       delete "/resource_subscriptions/:id", to: "resource_subscriptions#destroy"
       get "/resource_subscriptions", to: "resource_subscriptions#index"
+
+      get "/tax_forms", to: "tax_forms#index"
+      get "/tax_forms/:year/:tax_form_type/download", to: "tax_forms#download"
+      get "/earnings", to: "earnings#show"
     end
   end
 

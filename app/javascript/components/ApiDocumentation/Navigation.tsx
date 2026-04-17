@@ -55,6 +55,12 @@ export const Navigation = () => (
           <li>
             <a href="#payouts">Payouts</a>
           </li>
+          <li>
+            <a href="#tax-forms">Tax forms</a>
+          </li>
+          <li>
+            <a href="#earnings">Earnings</a>
+          </li>
         </menu>
       </li>
     </menu>
