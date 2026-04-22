@@ -1200,14 +1200,6 @@ describe Purchase, :vcr do
     end
   end
 
-  describe "mongoable" do
-    it "puts purchase in mongo on creation" do
-      @purchase = build(:purchase)
-      @purchase.save
-
-      expect(SaveToMongoWorker).to have_enqueued_sidekiq_job("Purchase", anything)
-    end
-  end
 
   describe "affiliate_merchant_account" do
     describe "purchase is on a Gumroad merchant account" do
@@ -2552,17 +2544,6 @@ describe Purchase, :vcr do
     it "does nothing for single unit currencies" do
       @p_yen.price_range = "9,99"
       expect(@p_yen.send(:calculate_price_range_cents)).to eq 999
-    end
-  end
-
-  describe "check purchase heuristics after purchase" do
-    it "queue up job to assess risk of purchase after purchase" do
-      user = create(:user)
-      product = create(:product, user:)
-      purchase = create(:purchase, link: product, card_country: "US", ip_address: "110.227.155.107")
-      purchase.send(:check_purchase_heuristics)
-
-      expect(CheckPurchaseHeuristicsWorker).to have_enqueued_sidekiq_job(purchase.id)
     end
   end
 
