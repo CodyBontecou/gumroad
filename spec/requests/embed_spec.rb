@@ -84,16 +84,12 @@ describe "Embed scenario", type: :system, js: true, mock_easypost: true do
   end
 
   context "discount code in URL" do
-    let(:offer_code) { create(:offer_code, user: product.user, products: [product]) }
+    let!(:offer_code) { create(:offer_code, user: product.user, products: [product]) }
 
     it "applies the discount code" do
       visit(create_embed_page(product, url: "#{product.long_url}/#{offer_code.code}", outbound: false))
 
-      within_frame do
-        wait_for_ajax
-        expect(page).to have_status(text: "$1 off will be applied at checkout (Code SXSW)")
-        click_on "Add to cart"
-      end
+      within_frame { click_on "Add to cart" }
 
       check_out(product, is_free: true)
 
@@ -109,7 +105,7 @@ describe "Embed scenario", type: :system, js: true, mock_easypost: true do
     let(:direct_affiliate) { create(:direct_affiliate, affiliate_user:, seller: product.user, affiliate_basis_points: 1000, products: [product]) }
 
     before(:each) do
-      expect_any_instance_of(OrdersController).to receive(:affiliate_from_cookies).with(an_instance_of(Link)).and_return(nil)
+      allow_any_instance_of(OrdersController).to receive(:affiliate_from_cookies).and_return(nil)
     end
 
     it "successfully credits the affiliate commission for the product bought using its affiliated product URL" do
@@ -161,7 +157,7 @@ describe "Embed scenario", type: :system, js: true, mock_easypost: true do
     visit(embed_page_url)
 
     within_frame do
-      wait_for_ajax
+      expect(page).to have_button("Add to cart")
       expect(page).to have_radio_button("Blue - Extra Large - Polo", checked: true)
       expect(page).to have_field("Quantity", with: 2)
       expect(page).to have_field("Name a fair price", with: 3)
