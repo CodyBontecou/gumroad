@@ -1929,18 +1929,31 @@ describe StripeMerchantAccountManager, :vcr do
         }
       end
 
-      it "creates an account at stripe with all the params and returns the corresponding merchant account" do
-        expect(Stripe::Account).to receive(:create).with(expected_account_params).and_call_original
+      it "raises a user not ready error because new India accounts are blocked" do
+        expect(Stripe::Account).not_to receive(:create)
 
-        merchant_account = subject.create_account(user, passphrase: "1234")
+        expect do
+          subject.create_account(user, passphrase: "1234")
+        end.to raise_error(MerchantRegistrationUserNotReadyError, /not supported yet/)
+        expect(user.merchant_accounts.alive.count).to eq(0)
+      end
 
-        expect(merchant_account.charge_processor_id).to eq(StripeChargeProcessor.charge_processor_id)
-        expect(merchant_account.charge_processor_merchant_id).to be_present
-        expect(merchant_account.country).to eq("IN")
-        expect(merchant_account.currency).to eq("inr")
-        expect(bank_account.reload.stripe_connect_account_id).to eq(merchant_account.charge_processor_merchant_id)
-        expect(bank_account.reload.stripe_bank_account_id).to match(/ba_[a-zA-Z0-9]+/)
-        expect(bank_account.reload.stripe_fingerprint).to match(/[a-zA-Z0-9]+/)
+      context "when new India account creation is not blocked" do
+        before { stub_const("StripeMerchantAccountManager::NEW_ACCOUNT_CREATION_BLOCKED_COUNTRIES", []) }
+
+        it "creates an account at stripe with all the params and returns the corresponding merchant account" do
+          expect(Stripe::Account).to receive(:create).with(expected_account_params).and_call_original
+
+          merchant_account = subject.create_account(user, passphrase: "1234")
+
+          expect(merchant_account.charge_processor_id).to eq(StripeChargeProcessor.charge_processor_id)
+          expect(merchant_account.charge_processor_merchant_id).to be_present
+          expect(merchant_account.country).to eq("IN")
+          expect(merchant_account.currency).to eq("inr")
+          expect(bank_account.reload.stripe_connect_account_id).to eq(merchant_account.charge_processor_merchant_id)
+          expect(bank_account.reload.stripe_bank_account_id).to match(/ba_[a-zA-Z0-9]+/)
+          expect(bank_account.reload.stripe_fingerprint).to match(/[a-zA-Z0-9]+/)
+        end
       end
     end
 

@@ -13,6 +13,8 @@ module StripeMerchantAccountManager
   ACCOUNT_HOLDER_NAME_SYNC_COUNTRIES = [Compliance::Countries::JPN.alpha2, Compliance::Countries::VNM.alpha2, Compliance::Countries::IDN.alpha2].freeze
   private_constant :ACCOUNT_HOLDER_NAME_SYNC_COUNTRIES
 
+  NEW_ACCOUNT_CREATION_BLOCKED_COUNTRIES = [Compliance::Countries::IND.alpha2].freeze
+
   def self.account_holder_name_synced_to_stripe?(user)
     country_code = user.alive_user_compliance_info&.legal_entity_country_code
     ACCOUNT_HOLDER_NAME_SYNC_COUNTRIES.include?(country_code)
@@ -46,6 +48,7 @@ module StripeMerchantAccountManager
 
       country_code = user_compliance_info.legal_entity_country_code
       raise MerchantRegistrationUserNotReadyError.new(user.id, "does not have a legal entity country") if country_code.blank?
+      raise MerchantRegistrationUserNotReadyError.new(user.id, "is not supported yet") if NEW_ACCOUNT_CREATION_BLOCKED_COUNTRIES.include?(country_code)
       country = Country.new(country_code)
 
       currency = country.payout_currency
