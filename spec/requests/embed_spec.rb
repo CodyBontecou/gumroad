@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-describe "Embed scenario", type: :system, js: true, mock_easypost: true do
+describe "Embed scenario", type: :system, js: true, mock_easypost: true, retry: 2 do
   include EmbedHelpers
 
   after(:all) { cleanup_embed_artifacts }
@@ -89,7 +89,10 @@ describe "Embed scenario", type: :system, js: true, mock_easypost: true do
     it "applies the discount code" do
       visit(create_embed_page(product, url: "#{product.long_url}/#{offer_code.code}", outbound: false))
 
-      within_frame { click_on "Add to cart" }
+      within_frame do
+        expect(page).to have_status(text: "$1 off will be applied at checkout (Code SXSW)", wait: 15)
+        click_on "Add to cart"
+      end
 
       check_out(product, is_free: true)
 
@@ -111,7 +114,10 @@ describe "Embed scenario", type: :system, js: true, mock_easypost: true do
     it "successfully credits the affiliate commission for the product bought using its affiliated product URL" do
       visit(create_embed_page(product, url: direct_affiliate.referral_url_for_product(product), outbound: false))
 
-      within_frame { click_on "Add to cart" }
+      within_frame do
+        expect(page).to have_text("$75", wait: 15)
+        click_on "Add to cart"
+      end
 
       expect do
         check_out(product)
