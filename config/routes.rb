@@ -292,6 +292,9 @@ Rails.application.routes.draw do
             collection do
               post :search
             end
+            member do
+              post :refund
+            end
           end
 
           resources :licenses, only: [] do
