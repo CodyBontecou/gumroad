@@ -1,0 +1,1296 @@
+openapi: 3.1.0
+info:
+  title: Gumroad API
+  version: "2.0.0"
+  description: |
+    Gumroad's public REST API (v2). All requests require an OAuth2 access token,
+    passed either as a bearer token (`Authorization: Bearer <token>`) or as an
+    `access_token` query/body parameter.
+
+    Responses are JSON. Successful responses are wrapped in `{ "success": true, ... }`.
+    Error responses are wrapped in `{ "success": false, "message": "..." }` with a
+    2xx status today (legacy behavior — see Api::V2::BaseController).
+
+    This spec is hand-authored from the controllers under `app/controllers/api/v2/`
+    and is a starting scaffold — request/response payload schemas use freeform
+    objects where the live shape is too dynamic to pin down without drift.
+  contact:
+    name: Gumroad
+    url: https://gumroad.com/api
+  license:
+    name: MIT
+    url: https://github.com/antiwork/gumroad/blob/main/LICENSE.md
+
+servers:
+  - url: https://api.gumroad.com/v2
+    description: Production
+  - url: https://gumroad.com/api/v2
+    description: Production (alternate host)
+
+security:
+  - oauth2: []
+  - bearerAuth: []
+  - accessTokenQuery: []
+
+tags:
+  - name: User
+  - name: Products
+  - name: Variant categories
+  - name: Variants
+  - name: Custom fields
+  - name: Offer codes
+  - name: SKUs
+  - name: Subscribers
+  - name: Sales
+  - name: Payouts
+  - name: Licenses
+  - name: Resource subscriptions
+  - name: Tax forms
+  - name: Earnings
+  - name: Files
+  - name: Thumbnails
+  - name: Covers
+  - name: Bundle contents
+
+paths:
+  /user:
+    get:
+      tags: [User]
+      summary: Get the authenticated user
+      operationId: getUser
+      responses:
+        "200":
+          description: The authenticated user
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserEnvelope" }
+
+  /products:
+    get:
+      tags: [Products]
+      summary: List products
+      operationId: listProducts
+      parameters:
+        - $ref: "#/components/parameters/PageKey"
+      responses:
+        "200":
+          description: Products page
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProductListEnvelope" }
+    post:
+      tags: [Products]
+      summary: Create a product
+      operationId: createProduct
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProductCreate" }
+      responses:
+        "200":
+          description: Created product
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProductEnvelope" }
+
+  /products/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ProductId"
+    get:
+      tags: [Products]
+      summary: Get a product
+      operationId: getProduct
+      responses:
+        "200":
+          description: The product
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProductEnvelope" }
+    put:
+      tags: [Products]
+      summary: Update a product
+      operationId: updateProduct
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProductUpdate" }
+      responses:
+        "200":
+          description: Updated product
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProductEnvelope" }
+    delete:
+      tags: [Products]
+      summary: Delete a product
+      operationId: deleteProduct
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageEnvelope" }
+
+  /products/{id}/enable:
+    parameters:
+      - $ref: "#/components/parameters/ProductId"
+    put:
+      tags: [Products]
+      summary: Publish a product
+      operationId: enableProduct
+      responses:
+        "200":
+          description: Product enabled
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProductEnvelope" }
+
+  /products/{id}/disable:
+    parameters:
+      - $ref: "#/components/parameters/ProductId"
+    put:
+      tags: [Products]
+      summary: Unpublish a product
+      operationId: disableProduct
+      responses:
+        "200":
+          description: Product disabled
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProductEnvelope" }
+
+  /products/{link_id}/variant_categories:
+    parameters:
+      - $ref: "#/components/parameters/LinkId"
+    get:
+      tags: [Variant categories]
+      summary: List variant categories
+      operationId: listVariantCategories
+      responses:
+        "200":
+          description: Variant categories
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SuccessEnvelope" }
+    post:
+      tags: [Variant categories]
+      summary: Create a variant category
+      operationId: createVariantCategory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title]
+              properties:
+                title: { type: string }
+      responses:
+        "200":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SuccessEnvelope" }
+
+  /products/{link_id}/variant_categories/{id}:
+    parameters:
+      - $ref: "#/components/parameters/LinkId"
+      - $ref: "#/components/parameters/Id"
+    get:
+      tags: [Variant categories]
+      summary: Get a variant category
+      operationId: getVariantCategory
+      responses:
+        "200":
+          description: Variant category
+          content: { application/json: { schema: { $ref: "#/components/schemas/SuccessEnvelope" } } }
+    put:
+      tags: [Variant categories]
+      summary: Update a variant category
+      operationId: updateVariantCategory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+      responses:
+        "200":
+          description: Updated
+          content: { application/json: { schema: { $ref: "#/components/schemas/SuccessEnvelope" } } }
+    delete:
+      tags: [Variant categories]
+      summary: Delete a variant category
+      operationId: deleteVariantCategory
+      responses:
+        "200":
+          description: Deleted
+          content: { application/json: { schema: { $ref: "#/components/schemas/MessageEnvelope" } } }
+
+  /products/{link_id}/variant_categories/{variant_category_id}/variants:
+    parameters:
+      - $ref: "#/components/parameters/LinkId"
+      - { in: path, name: variant_category_id, required: true, schema: { type: string } }
+    get:
+      tags: [Variants]
+      summary: List variants
+      operationId: listVariants
+      responses:
+        "200":
+          description: Variants
+          content: { application/json: { schema: { $ref: "#/components/schemas/SuccessEnvelope" } } }
+    post:
+      tags: [Variants]
+      summary: Create a variant
+      operationId: createVariant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/VariantInput" }
+      responses:
+        "200":
+          description: Created
+          content: { application/json: { schema: { $ref: "#/components/schemas/SuccessEnvelope" } } }
+
+  /products/{link_id}/variant_categories/{variant_category_id}/variants/{id}:
+    parameters:
+      - $ref: "#/components/parameters/LinkId"
+      - { in: path, name: variant_category_id, required: true, schema: { type: string } }
+      - $ref: "#/components/parameters/Id"
+    get:
+      tags: [Variants]
+      summary: Get a variant
+      operationId: getVariant
+      responses:
+        "200":
+          description: Variant
+          content: { application/json: { schema: { $ref: "#/components/schemas/SuccessEnvelope" } } }
+    put:
+      tags: [Variants]
+      summary: Update a variant
+      operationId: updateVariant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: "#/components/schemas/VariantInput"
+                - type: object
+                  properties:
+                    rich_content:
+                      description: Array of content pages, or a JSON string of the same.
+                      oneOf:
+                        - type: array
+                          items: { type: object, additionalProperties: true }
+                        - type: string
+      responses:
+        "200":
+          description: Updated
+          content: { application/json: { schema: { $ref: "#/components/schemas/SuccessEnvelope" } } }
+    delete:
+      tags: [Variants]
+      summary: Delete a variant
+      operationId: deleteVariant
+      responses:
+        "200":
+          description: Deleted
+          content: { application/json: { schema: { $ref: "#/components/schemas/MessageEnvelope" } } }
+
+  /products/{link_id}/custom_fields:
+    parameters:
+      - $ref: "#/components/parameters/LinkId"
+    get:
+      tags: [Custom fields]
+      summary: List custom fields
+      operationId: listCustomFields
+      responses:
+        "200":
+          description: Custom fields
+          content: { application/json: { schema: { $ref: "#/components/schemas/SuccessEnvelope" } } }
+    post:
+      tags: [Custom fields]
+      summary: Create a custom field
+      operationId: createCustomField
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string, description: "One of name/url/label is required." }
+                url: { type: string }
+                label: { type: string }
+                required: { type: boolean }
+                type:
+                  type: string
+                  default: text
+      responses:
+        "200":
+          description: Created
+          content: { application/json: { schema: { $ref: "#/components/schemas/SuccessEnvelope" } } }
+
+  /products/{link_id}/custom_fields/{id}:
+    parameters:
+      - $ref: "#/components/parameters/LinkId"
+      - { in: path, name: id, required: true, schema: { type: string }, description: "Custom field name." }
+    put:
+      tags: [Custom fields]
+      summary: Update a custom field
+      operationId: updateCustomField
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                required: { type: boolean }
+      responses:
+        "200":
+          description: Updated
+          content: { application/json: { schema: { $ref: "#/components/schemas/SuccessEnvelope" } } }
+    delete:
+      tags: [Custom fields]
+      summary: Delete a custom field
+      operationId: deleteCustomField
+      responses:
+        "200":
+          description: Deleted
+          content: { application/json: { schema: { $ref: "#/components/schemas/MessageEnvelope" } } }
+
+  /products/{link_id}/offer_codes:
+    parameters:
+      - $ref: "#/components/parameters/LinkId"
+    get:
+      tags: [Offer codes]
+      summary: List offer codes
+      operationId: listOfferCodes
+      responses:
+        "200":
+          description: Offer codes
+          content: { application/json: { schema: { $ref: "#/components/schemas/SuccessEnvelope" } } }
+    post:
+      tags: [Offer codes]
+      summary: Create an offer code
+      operationId: createOfferCode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OfferCodeCreate" }
+      responses:
+        "200":
+          description: Created
+          content: { application/json: { schema: { $ref: "#/components/schemas/SuccessEnvelope" } } }
+
+  /products/{link_id}/offer_codes/{id}:
+    parameters:
+      - $ref: "#/components/parameters/LinkId"
+      - $ref: "#/components/parameters/Id"
+    get:
+      tags: [Offer codes]
+      summary: Get an offer code
+      operationId: getOfferCode
+      responses:
+        "200":
+          description: Offer code
+          content: { application/json: { schema: { $ref: "#/components/schemas/SuccessEnvelope" } } }
+    put:
+      tags: [Offer codes]
+      summary: Update an offer code
+      operationId: updateOfferCode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                max_purchase_count: { type: integer }
+      responses:
+        "200":
+          description: Updated
+          content: { application/json: { schema: { $ref: "#/components/schemas/SuccessEnvelope" } } }
+    delete:
+      tags: [Offer codes]
+      summary: Delete an offer code
+      operationId: deleteOfferCode
+      responses:
+        "200":
+          description: Deleted
+          content: { application/json: { schema: { $ref: "#/components/schemas/MessageEnvelope" } } }
+
+  /products/{link_id}/skus:
+    parameters:
+      - $ref: "#/components/parameters/LinkId"
+    get:
+      tags: [SKUs]
+      summary: List SKUs
+      operationId: listSkus
+      responses:
+        "200":
+          description: SKUs
+          content: { application/json: { schema: { $ref: "#/components/schemas/SuccessEnvelope" } } }
+
+  /products/{link_id}/subscribers:
+    parameters:
+      - $ref: "#/components/parameters/LinkId"
+    get:
+      tags: [Subscribers]
+      summary: List active subscribers for a product
+      operationId: listProductSubscribers
+      parameters:
+        - { in: query, name: email, schema: { type: string } }
+        - { in: query, name: page_key, schema: { type: string } }
+        - { in: query, name: paginated, schema: { type: string, enum: ["1", "true"] } }
+      responses:
+        "200":
+          description: Subscribers
+          content: { application/json: { schema: { $ref: "#/components/schemas/SuccessEnvelope" } } }
+
+  /subscribers/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      tags: [Subscribers]
+      summary: Get a subscriber
+      operationId: getSubscriber
+      responses:
+        "200":
+          description: Subscriber
+          content: { application/json: { schema: { $ref: "#/components/schemas/SuccessEnvelope" } } }
+
+  /products/{link_id}/bundle_contents:
+    parameters:
+      - $ref: "#/components/parameters/LinkId"
+    put:
+      tags: [Bundle contents]
+      summary: Update bundle contents
+      operationId: updateBundleContents
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                products:
+                  type: array
+                  items:
+                    type: object
+                    required: [product_id]
+                    properties:
+                      product_id: { type: string }
+                      variant_id: { type: string }
+                      quantity: { type: integer, default: 1, minimum: 1 }
+                      position: { type: integer }
+      responses:
+        "200":
+          description: Updated bundle
+          content: { application/json: { schema: { $ref: "#/components/schemas/ProductEnvelope" } } }
+
+  /products/{link_id}/thumbnail:
+    parameters:
+      - $ref: "#/components/parameters/LinkId"
+    post:
+      tags: [Thumbnails]
+      summary: Set a product thumbnail
+      operationId: createThumbnail
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [signed_blob_id]
+              properties:
+                signed_blob_id: { type: string }
+      responses:
+        "200":
+          description: Thumbnail set
+          content: { application/json: { schema: { $ref: "#/components/schemas/SuccessEnvelope" } } }
+    delete:
+      tags: [Thumbnails]
+      summary: Remove a product thumbnail
+      operationId: deleteThumbnail
+      responses:
+        "200":
+          description: Thumbnail removed
+          content: { application/json: { schema: { $ref: "#/components/schemas/SuccessEnvelope" } } }
+
+  /products/{link_id}/covers:
+    parameters:
+      - $ref: "#/components/parameters/LinkId"
+    post:
+      tags: [Covers]
+      summary: Add a product cover
+      operationId: createCover
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                signed_blob_id: { type: string }
+                url: { type: string }
+              description: Provide either `signed_blob_id` or `url`.
+      responses:
+        "200":
+          description: Covers
+          content: { application/json: { schema: { $ref: "#/components/schemas/SuccessEnvelope" } } }
+
+  /products/{link_id}/covers/{id}:
+    parameters:
+      - $ref: "#/components/parameters/LinkId"
+      - { in: path, name: id, required: true, schema: { type: string }, description: Asset preview GUID. }
+    delete:
+      tags: [Covers]
+      summary: Remove a product cover
+      operationId: deleteCover
+      responses:
+        "200":
+          description: Cover removed
+          content: { application/json: { schema: { $ref: "#/components/schemas/SuccessEnvelope" } } }
+
+  /sales:
+    get:
+      tags: [Sales]
+      summary: List sales
+      operationId: listSales
+      parameters:
+        - { in: query, name: after, schema: { type: string, format: date }, description: "YYYY-MM-DD; sales on or after." }
+        - { in: query, name: before, schema: { type: string, format: date }, description: "YYYY-MM-DD; sales strictly before." }
+        - { in: query, name: email, schema: { type: string } }
+        - { in: query, name: name, schema: { type: string } }
+        - { in: query, name: license_key, schema: { type: string } }
+        - { in: query, name: product_id, schema: { type: string } }
+        - { in: query, name: order_id, schema: { type: string } }
+        - $ref: "#/components/parameters/PageKey"
+      responses:
+        "200":
+          description: Sales page
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SaleListEnvelope" }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /sales/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      tags: [Sales]
+      summary: Get a sale
+      operationId: getSale
+      responses:
+        "200":
+          description: Sale
+          content: { application/json: { schema: { $ref: "#/components/schemas/SaleEnvelope" } } }
+
+  /sales/{id}/mark_as_shipped:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    put:
+      tags: [Sales]
+      summary: Mark a sale as shipped
+      operationId: markSaleShipped
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tracking_url: { type: string, format: uri }
+      responses:
+        "200":
+          description: Sale
+          content: { application/json: { schema: { $ref: "#/components/schemas/SaleEnvelope" } } }
+
+  /sales/{id}/refund:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    put:
+      tags: [Sales]
+      summary: Refund a sale
+      operationId: refundSale
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount_cents: { type: integer, description: "Amount in cents to refund. Omit for full refund." }
+      responses:
+        "200":
+          description: Sale
+          content: { application/json: { schema: { $ref: "#/components/schemas/SaleEnvelope" } } }
+
+  /sales/{id}/resend_receipt:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    post:
+      tags: [Sales]
+      summary: Resend the receipt for a sale
+      operationId: resendReceipt
+      responses:
+        "200":
+          description: Success
+          content: { application/json: { schema: { $ref: "#/components/schemas/SuccessEnvelope" } } }
+
+  /payouts:
+    get:
+      tags: [Payouts]
+      summary: List payouts
+      operationId: listPayouts
+      parameters:
+        - { in: query, name: after, schema: { type: string, format: date } }
+        - { in: query, name: before, schema: { type: string, format: date } }
+        - { in: query, name: include_upcoming, schema: { type: string, enum: ["true", "false"], default: "true" } }
+        - $ref: "#/components/parameters/PageKey"
+      responses:
+        "200":
+          description: Payouts page
+          content: { application/json: { schema: { $ref: "#/components/schemas/PayoutListEnvelope" } } }
+
+  /payouts/upcoming:
+    get:
+      tags: [Payouts]
+      summary: List upcoming payouts
+      operationId: listUpcomingPayouts
+      parameters:
+        - { in: query, name: include_sales, schema: { type: string, enum: ["true", "false"] } }
+        - { in: query, name: include_transactions, schema: { type: string, enum: ["true", "false"] } }
+      responses:
+        "200":
+          description: Upcoming payouts
+          content: { application/json: { schema: { $ref: "#/components/schemas/PayoutListEnvelope" } } }
+
+  /payouts/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      tags: [Payouts]
+      summary: Get a payout
+      operationId: getPayout
+      parameters:
+        - { in: query, name: include_sales, schema: { type: string, enum: ["true", "false"] } }
+        - { in: query, name: include_transactions, schema: { type: string, enum: ["true", "false"] } }
+      responses:
+        "200":
+          description: Payout
+          content: { application/json: { schema: { $ref: "#/components/schemas/SuccessEnvelope" } } }
+
+  /licenses/verify:
+    post:
+      tags: [Licenses]
+      summary: Verify a license key
+      description: |
+        Authentication is not required when using `product_id` + `license_key`.
+        Returns license usage and the associated purchase metadata.
+      operationId: verifyLicense
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [license_key]
+              properties:
+                product_id: { type: string, description: "The product's external_id. Required for newer products." }
+                license_key: { type: string }
+                increment_uses_count:
+                  type: boolean
+                  default: true
+                  description: When true (default), increments the use counter on a successful verify.
+      responses:
+        "200":
+          description: License verified
+          content: { application/json: { schema: { $ref: "#/components/schemas/SuccessEnvelope" } } }
+        "404":
+          description: License not found, disabled, or access revoked
+          content: { application/json: { schema: { $ref: "#/components/schemas/ErrorMessage" } } }
+        "500":
+          description: Missing required `product_id` for newer products
+          content: { application/json: { schema: { $ref: "#/components/schemas/ErrorMessage" } } }
+
+  /licenses/enable:
+    put:
+      tags: [Licenses]
+      summary: Enable a license
+      operationId: enableLicense
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LicenseLookup" }
+      responses:
+        "200":
+          description: License enabled
+          content: { application/json: { schema: { $ref: "#/components/schemas/SuccessEnvelope" } } }
+
+  /licenses/disable:
+    put:
+      tags: [Licenses]
+      summary: Disable a license
+      operationId: disableLicense
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LicenseLookup" }
+      responses:
+        "200":
+          description: License disabled
+          content: { application/json: { schema: { $ref: "#/components/schemas/SuccessEnvelope" } } }
+
+  /licenses/decrement_uses_count:
+    put:
+      tags: [Licenses]
+      summary: Decrement a license's uses count
+      operationId: decrementLicenseUses
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LicenseLookup" }
+      responses:
+        "200":
+          description: License updated
+          content: { application/json: { schema: { $ref: "#/components/schemas/SuccessEnvelope" } } }
+
+  /licenses/rotate:
+    put:
+      tags: [Licenses]
+      summary: Rotate a license key
+      operationId: rotateLicense
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LicenseLookup" }
+      responses:
+        "200":
+          description: License rotated
+          content: { application/json: { schema: { $ref: "#/components/schemas/SuccessEnvelope" } } }
+
+  /resource_subscriptions:
+    get:
+      tags: [Resource subscriptions]
+      summary: List resource subscriptions
+      operationId: listResourceSubscriptions
+      parameters:
+        - { in: query, name: resource_name, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Resource subscriptions
+          content: { application/json: { schema: { $ref: "#/components/schemas/SuccessEnvelope" } } }
+    put:
+      tags: [Resource subscriptions]
+      summary: Create a resource subscription (webhook)
+      operationId: createResourceSubscription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [resource_name, post_url]
+              properties:
+                resource_name: { type: string, description: "e.g. sale, refund, dispute, cancellation, subscription_updated, subscription_ended, subscription_restarted" }
+                post_url: { type: string, format: uri }
+      responses:
+        "200":
+          description: Subscription created
+          content: { application/json: { schema: { $ref: "#/components/schemas/SuccessEnvelope" } } }
+
+  /resource_subscriptions/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    delete:
+      tags: [Resource subscriptions]
+      summary: Delete a resource subscription
+      operationId: deleteResourceSubscription
+      responses:
+        "200":
+          description: Deleted
+          content: { application/json: { schema: { $ref: "#/components/schemas/MessageEnvelope" } } }
+
+  /tax_forms:
+    get:
+      tags: [Tax forms]
+      summary: List tax forms
+      operationId: listTaxForms
+      parameters:
+        - { in: query, name: year, schema: { type: integer } }
+      responses:
+        "200":
+          description: Tax forms
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  tax_forms:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        tax_year: { type: integer }
+                        tax_form_type: { type: string }
+                        filed_at: { type: string, format: date-time, nullable: true }
+
+  /tax_forms/{year}/{tax_form_type}/download:
+    parameters:
+      - { in: path, name: year, required: true, schema: { type: integer } }
+      - { in: path, name: tax_form_type, required: true, schema: { type: string } }
+    get:
+      tags: [Tax forms]
+      summary: Download a tax form PDF
+      operationId: downloadTaxForm
+      responses:
+        "200":
+          description: PDF
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+        "404":
+          description: Not found
+          content: { application/json: { schema: { $ref: "#/components/schemas/ErrorMessage" } } }
+
+  /earnings:
+    get:
+      tags: [Earnings]
+      summary: Get yearly earnings
+      operationId: getEarnings
+      parameters:
+        - { in: query, name: year, schema: { type: integer } }
+      responses:
+        "200":
+          description: Earnings summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  year: { type: integer }
+                  currency: { type: string, example: usd }
+                  gross_cents: { type: integer }
+                  fees_cents: { type: integer }
+                  taxes_cents: { type: integer }
+                  affiliate_credit_cents: { type: integer }
+                  net_cents: { type: integer }
+
+  /files/presign:
+    post:
+      tags: [Files]
+      summary: Create a presigned multipart upload
+      operationId: presignFile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [filename, file_size]
+              properties:
+                filename: { type: string }
+                file_size: { type: integer, description: "Bytes; max 20 GB." }
+      responses:
+        "200":
+          description: Presigned URLs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  upload_id: { type: string }
+                  key: { type: string }
+                  file_url: { type: string, format: uri }
+                  parts:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        part_number: { type: integer }
+                        presigned_url: { type: string, format: uri }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /files/complete:
+    post:
+      tags: [Files]
+      summary: Complete a multipart upload
+      operationId: completeFile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [upload_id, key, parts]
+              properties:
+                upload_id: { type: string }
+                key: { type: string }
+                parts:
+                  type: array
+                  items:
+                    type: object
+                    required: [part_number, etag]
+                    properties:
+                      part_number: { type: integer }
+                      etag: { type: string }
+      responses:
+        "200":
+          description: Upload completed; returns canonical file URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  file_url: { type: string, format: uri }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /files/abort:
+    post:
+      tags: [Files]
+      summary: Abort a multipart upload
+      operationId: abortFile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [upload_id, key]
+              properties:
+                upload_id: { type: string }
+                key: { type: string }
+      responses:
+        "200":
+          description: Aborted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  status: { type: string, enum: [accepted, already_gone] }
+
+components:
+  securitySchemes:
+    oauth2:
+      type: oauth2
+      description: |
+        Doorkeeper-managed OAuth2. Authorization Code and Client Credentials grants
+        are supported. See https://gumroad.com/api for app registration and the
+        full scope list.
+      flows:
+        authorizationCode:
+          authorizationUrl: https://gumroad.com/oauth/authorize
+          tokenUrl: https://gumroad.com/oauth/token
+          refreshUrl: https://gumroad.com/oauth/token
+          scopes:
+            view_public: Read public profile data (default)
+            edit_products: Create, update, and delete products
+            view_sales: Read sales and subscribers
+            mark_sales_as_shipped: Mark sales as shipped
+            edit_sales: Edit sales (e.g. resend receipt)
+            refund_sales: Refund sales
+            view_payouts: Read payouts
+            view_profile: Read user profile
+            view_tax_data: Read tax forms / earnings
+            ifttt: IFTTT integration
+        clientCredentials:
+          tokenUrl: https://gumroad.com/oauth/token
+          scopes:
+            view_public: Read public profile data
+            edit_products: Create, update, and delete products
+            view_sales: Read sales and subscribers
+            mark_sales_as_shipped: Mark sales as shipped
+            edit_sales: Edit sales
+            refund_sales: Refund sales
+            view_payouts: Read payouts
+            view_profile: Read user profile
+            view_tax_data: Read tax forms / earnings
+    bearerAuth:
+      type: http
+      scheme: bearer
+    accessTokenQuery:
+      type: apiKey
+      in: query
+      name: access_token
+
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+      description: External (public) ID.
+    ProductId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+      description: Product external ID or unique permalink.
+    LinkId:
+      name: link_id
+      in: path
+      required: true
+      schema: { type: string }
+      description: Product external ID or unique permalink.
+    PageKey:
+      name: page_key
+      in: query
+      required: false
+      schema: { type: string }
+      description: Cursor returned by a previous page (`next_page_key`).
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorMessage" }
+
+  schemas:
+    SuccessEnvelope:
+      type: object
+      description: Generic success envelope. Concrete responses include additional keys (e.g. `product`, `sales`).
+      additionalProperties: true
+      properties:
+        success: { type: boolean, enum: [true] }
+
+    MessageEnvelope:
+      type: object
+      properties:
+        success: { type: boolean }
+        message: { type: string }
+
+    ErrorMessage:
+      type: object
+      properties:
+        success: { type: boolean, enum: [false] }
+        message: { type: string }
+        status: { type: integer }
+        error: { type: string }
+
+    Pagination:
+      type: object
+      properties:
+        next_page_key: { type: string }
+        next_page_url: { type: string }
+
+    UserEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/SuccessEnvelope"
+        - type: object
+          properties:
+            user: { type: object, additionalProperties: true }
+
+    Product:
+      type: object
+      additionalProperties: true
+      description: Shape comes from `Link#as_json` and is too dynamic to fully pin here. Common fields shown.
+      properties:
+        id: { type: string }
+        name: { type: string }
+        description: { type: string }
+        custom_permalink: { type: string, nullable: true }
+        price: { type: integer, description: Price in the smallest currency unit (cents). }
+        currency: { type: string }
+        published: { type: boolean }
+        url: { type: string, format: uri }
+        short_url: { type: string, format: uri }
+        thumbnail_url: { type: string, format: uri, nullable: true }
+        tags: { type: array, items: { type: string } }
+        formatted_price: { type: string }
+        sales_count: { type: integer }
+        sales_usd_cents: { type: integer }
+        max_purchase_count: { type: integer, nullable: true }
+        deleted: { type: boolean }
+        custom_receipt: { type: string, nullable: true }
+        require_shipping: { type: boolean }
+        subscription_duration: { type: string, nullable: true }
+        is_tiered_membership: { type: boolean }
+        custom_fields: { type: array, items: { type: object, additionalProperties: true } }
+        variants: { type: array, items: { type: object, additionalProperties: true } }
+
+    ProductEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/SuccessEnvelope"
+        - type: object
+          properties:
+            product: { $ref: "#/components/schemas/Product" }
+            warning: { type: string }
+
+    ProductListEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/SuccessEnvelope"
+        - $ref: "#/components/schemas/Pagination"
+        - type: object
+          properties:
+            products:
+              type: array
+              items: { $ref: "#/components/schemas/Product" }
+
+    ProductCreate:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        native_type:
+          type: string
+          default: digital
+          description: e.g. digital, ebook, course, membership, bundle, coffee, commission.
+        description: { type: string }
+        custom_permalink: { type: string }
+        price: { type: integer, description: Price in cents. }
+        price_currency_type: { type: string, example: usd }
+        max_purchase_count: { type: integer }
+        customizable_price: { type: boolean }
+        suggested_price_cents: { type: integer }
+        subscription_duration:
+          type: string
+          description: Required for membership products. e.g. monthly, yearly.
+        taxonomy_id: { type: string }
+        tags: { type: array, items: { type: string } }
+        custom_summary: { type: string }
+        files:
+          type: array
+          items: { $ref: "#/components/schemas/FileInput" }
+        rich_content:
+          type: array
+          items: { $ref: "#/components/schemas/RichContentPage" }
+
+    ProductUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        description: { type: string }
+        custom_permalink: { type: string }
+        price: { type: integer }
+        price_currency_type: { type: string }
+        customizable_price: { type: boolean }
+        suggested_price_cents: { type: integer }
+        max_purchase_count: { type: integer }
+        quantity_enabled: { type: boolean }
+        is_adult: { type: boolean }
+        display_product_reviews: { type: boolean }
+        should_show_sales_count: { type: boolean }
+        taxonomy_id: { type: string }
+        custom_receipt: { type: string }
+        custom_summary: { type: string }
+        has_same_rich_content_for_all_variants: { type: boolean }
+        tags: { type: array, items: { type: string } }
+        cover_ids: { type: array, items: { type: string } }
+        files:
+          type: array
+          items: { $ref: "#/components/schemas/FileInput" }
+          description: |
+            Full replacement. Include an entry with `id` only to keep an existing file unchanged;
+            files missing from the array are removed.
+        rich_content:
+          type: array
+          items: { $ref: "#/components/schemas/RichContentPage" }
+
+    FileInput:
+      type: object
+      properties:
+        id: { type: string }
+        url: { type: string, format: uri, description: Canonical URL returned by `POST /files/complete`. }
+        display_name: { type: string }
+        extension: { type: string }
+        position: { type: integer }
+        stream_only: { type: boolean }
+        description: { type: string }
+
+    RichContentPage:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        description:
+          oneOf:
+            - type: array
+              items: { type: object, additionalProperties: true }
+            - type: object
+              additionalProperties: true
+
+    VariantInput:
+      type: object
+      properties:
+        name: { type: string }
+        description: { type: string }
+        price_difference_cents: { type: integer }
+        max_purchase_count: { type: integer }
+
+    OfferCodeCreate:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, description: Code (what the buyer types). }
+        offer_type: { type: string, enum: [cents, percent], default: cents }
+        amount_off: { type: integer, description: "Cents (when offer_type=cents) or percent (when offer_type=percent)." }
+        amount_cents: { type: integer }
+        max_purchase_count: { type: integer }
+        universal: { type: boolean, default: false }
+
+    Sale:
+      type: object
+      additionalProperties: true
+      description: Shape comes from `Purchase#as_json(version: 2)`.
+
+    SaleEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/SuccessEnvelope"
+        - type: object
+          properties:
+            sale: { $ref: "#/components/schemas/Sale" }
+
+    SaleListEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/SuccessEnvelope"
+        - $ref: "#/components/schemas/Pagination"
+        - type: object
+          properties:
+            sales:
+              type: array
+              items: { $ref: "#/components/schemas/Sale" }
+
+    Payout:
+      type: object
+      additionalProperties: true
+
+    PayoutListEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/SuccessEnvelope"
+        - $ref: "#/components/schemas/Pagination"
+        - type: object
+          properties:
+            payouts:
+              type: array
+              items: { $ref: "#/components/schemas/Payout" }
+
+    LicenseLookup:
+      type: object
+      required: [license_key]
+      properties:
+        product_id: { type: string }
+        license_key: { type: string }

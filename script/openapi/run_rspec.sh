@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Records OpenAPI schemas from real v2 controller specs.
+#
+# Usage:
+#   script/openapi/run_rspec.sh           # record all v2 controller specs
+#   script/openapi/run_rspec.sh links     # record only spec/controllers/api/v2/links_controller_spec.rb
+#
+# The OPENAPI=1 env var activates rspec-openapi hooks. Output is written to
+# tmp/openapi/from_rspec.yaml (override with RSPEC_OPENAPI_PATH).
+#
+# Configuration lives in spec/support/openapi.rb. Without OPENAPI=1, that
+# file is a no-op and rspec-openapi does not load.
+
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+cd "$ROOT"
+
+mkdir -p tmp/openapi
+
+if [ "$#" -gt 0 ]; then
+  TARGETS=()
+  for name in "$@"; do
+    TARGETS+=("spec/controllers/api/v2/${name%_controller_spec.rb}_controller_spec.rb")
+  done
+else
+  TARGETS=("spec/controllers/api/v2/")
+fi
+
+echo "Recording OpenAPI from: ${TARGETS[*]}"
+echo "Output: ${RSPEC_OPENAPI_PATH:-tmp/openapi/from_rspec.yaml}"
+echo
+
+OPENAPI=1 \
+  RSPEC_OPENAPI_PATH="${RSPEC_OPENAPI_PATH:-$ROOT/tmp/openapi/from_rspec.yaml}" \
+  bundle exec rspec "${TARGETS[@]}" --no-color

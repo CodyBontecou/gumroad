@@ -48,6 +48,7 @@ public/stylesheets/*
 public/system
 revision
 tmp
+tmp/openapi/
 web_base_sha
 spoom_data/*
 spoom_report.html

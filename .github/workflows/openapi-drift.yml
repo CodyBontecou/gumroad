@@ -1,0 +1,138 @@
+name: OpenAPI drift
+
+on:
+  pull_request:
+    paths:
+      - "app/controllers/api/v2/**"
+      - "app/models/**"
+      - "config/routes.rb"
+      - "script/openapi/**"
+      - "lib/tasks/openapi.rake"
+      - ".github/workflows/openapi-drift.yml"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: openapi-drift-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  drift:
+    name: Check OpenAPI spec for drift (warning only)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+          MYSQL_ROOT_PASSWORD: ""
+          MYSQL_DATABASE: gumroad_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    env:
+      RAILS_ENV: test
+      DATABASE_URL: mysql2://root@127.0.0.1:3306/gumroad_test
+      REDIS_URL: redis://127.0.0.1:6379/0
+      DISABLE_SPRING: "1"
+      SKIP_RSPEC: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version-file: .ruby-version
+          bundler-cache: true
+
+      - name: Prepare test database
+        run: bundle exec rake db:prepare
+        continue-on-error: true
+
+      - name: Regenerate OpenAPI spec and diff
+        id: drift
+        run: |
+          set +e
+          bundle exec rake openapi:check > openapi-drift.log 2>&1
+          rc=$?
+          echo "exit_code=$rc" >> "$GITHUB_OUTPUT"
+          if [ $rc -ne 0 ]; then
+            echo "drift_detected=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "drift_detected=false" >> "$GITHUB_OUTPUT"
+          fi
+          cat openapi-drift.log
+          exit 0
+
+      - name: Upload drift log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi-drift-log
+          path: openapi-drift.log
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Comment drift on PR
+        if: steps.drift.outputs.drift_detected == 'true' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const log = fs.readFileSync('openapi-drift.log', 'utf8');
+            const diffStart = log.indexOf('--- ');
+            const diff = diffStart >= 0 ? log.slice(diffStart) : log;
+            const max = 60000;
+            const snippet = diff.length > max ? diff.slice(0, max) + '\n... (truncated)' : diff;
+            const body = [
+              '### OpenAPI drift detected (warning only)',
+              '',
+              '`docs/openapi.yaml` does not match what the auto-generation pipeline would produce.',
+              'During the rollout period this is a warning and does not block merging.',
+              '',
+              'To fix locally:',
+              '',
+              '```sh',
+              'bundle exec rake openapi:generate',
+              'git add docs/openapi.yaml script/openapi/cached/from_rspec.yaml',
+              '```',
+              '',
+              '<details><summary>Diff</summary>',
+              '',
+              '```diff',
+              snippet,
+              '```',
+              '',
+              '</details>',
+            ].join('\n');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
+
+      - name: Fail step (non-blocking, surfaces a yellow check)
+        if: steps.drift.outputs.drift_detected == 'true'
+        run: |
+          echo "::warning::OpenAPI drift detected. See PR comment for diff."
+          exit 1
