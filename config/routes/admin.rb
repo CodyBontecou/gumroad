@@ -37,6 +37,7 @@ namespace :admin do
         end
       end
       resources :guids, only: [:index]
+      resource :watchlist, only: [:create, :update, :destroy]
     end
     member do
       post :add_credit
