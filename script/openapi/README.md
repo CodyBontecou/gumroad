@@ -5,6 +5,33 @@ codebase. The goal is to keep the public Gumroad API v2 spec in lockstep with
 the controllers, models, and tests rather than letting it rot as a hand-edited
 YAML file.
 
+## Source files vs generated artifacts
+
+**Source of truth (edit these):**
+
+- `app/controllers/api/v2/**` — controller actions
+- `app/models/**` — `as_json` serializers
+- `config/routes.rb` — route declarations
+- `spec/controllers/api/v2/**` — test claims (required fields, status codes)
+- `script/openapi/*.rb`, `*.sh` — the generators themselves
+- `docs/openapi.yaml.handwritten.bak` — frozen snapshot used to preserve
+  human-authored prose. Do not edit; if you need to add or rewrite
+  human-authored description/summary/requestBody content, edit it inside
+  `merger.rb`'s prose-merge logic instead so the regen produces it.
+
+**Generated artifacts (do NOT edit by hand):**
+
+- `docs/openapi.yaml` — emitted by `merger.rb`. Header line at the top of
+  the file says `AUTO-GENERATED`.
+- `script/openapi/cached/from_rspec.yaml` — emitted by `run_rspec.sh`.
+  Same header.
+- `tmp/openapi/*` — gitignored intermediates.
+
+All three generated paths are tagged `linguist-generated` in `.gitattributes`
+so GitHub collapses their diffs in PR view and excludes them from language
+stats. If you find yourself editing one of them, you're working against the
+pipeline — change the source file and rerun `rake openapi:regen` instead.
+
 ## Pipeline at a glance
 
 ```
@@ -94,10 +121,17 @@ trusting the regenerated spec.
 `.github/workflows/openapi-drift.yml` runs on PRs that touch
 `app/controllers/api/v2/**`, `app/models/**`, `config/routes.rb`, or
 `script/openapi/**`. It runs `rake openapi:check` with `SKIP_RSPEC=1` (using
-the committed cached recording) and posts a PR comment with the diff when
-drift is detected.
+the committed cached recording).
 
-The job is **non-blocking** for now: `continue-on-error: true` is set so a
-drift result surfaces as a yellow check rather than a red one. We'll flip this
-to a hard gate after a two-week soak period during which the team gets used to
-running `rake openapi:generate` before pushing.
+**Same-repo PRs**: when drift is detected the workflow runs `rake openapi:regen`
+itself and pushes the regenerated `docs/openapi.yaml` back to the PR branch
+as a `github-actions[bot]` commit, then posts a comment asking you to `git pull`
+before pushing again. You don't need to run regen locally.
+
+**Fork PRs**: `GITHUB_TOKEN` is read-only on fork PRs (GitHub security rule),
+so the workflow falls back to posting the diff with a manual-regen instruction
+and fails the build until you push the regenerated spec from your fork.
+
+`regen-main` runs on push to `main`. If drift somehow lands on `main` (rare —
+the PR gate should catch it), the workflow opens an auto-PR with the
+regenerated spec via `peter-evans/create-pull-request`.

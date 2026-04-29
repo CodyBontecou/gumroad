@@ -1,3 +1,10 @@
+# FROZEN SNAPSHOT of the hand-written docs/openapi.yaml, captured before the
+# auto-generation pipeline replaced it. Used by script/openapi/merger.rb to
+# preserve human-authored summaries, descriptions, requestBody schemas, and
+# named component schemas during regen, and by script/openapi/drift.rb to
+# diff against the generator output. Do not edit by hand — adjust the
+# generator inputs (controllers, models, script/openapi/*) instead.
+#
 openapi: 3.1.0
 info:
   title: Gumroad API
