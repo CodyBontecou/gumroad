@@ -226,6 +226,10 @@ class Rack::Attack
     req.remote_ip if req.path.ends_with?("/v2/sales") && req.params["page"].to_i > 10
   end
 
+  throttle("/api/v2/orders", limit: 10, period: 1.minute) do |req|
+    req.remote_ip if req.post? && req.path.ends_with?("/v2/orders")
+  end
+
   # Throttle POST requests to /login by login param
   #
   # Key: "rack::attack:#{Time.now.to_i/:period}:logins/login:#{req.login}"

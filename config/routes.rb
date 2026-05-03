@@ -86,6 +86,7 @@ Rails.application.routes.draw do
         end
       end
       resources :subscribers, only: [:show]
+      resources :orders, only: [:create]
 
       put "/resource_subscriptions", to: "resource_subscriptions#create"
       delete "/resource_subscriptions/:id", to: "resource_subscriptions#destroy"
